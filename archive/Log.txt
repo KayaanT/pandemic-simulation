@@ -1,0 +1,60 @@
+-------------------------------
+Here's the Input Data:
+- - - - - - - - - - - - - - - - 
+Numper of Sample: 1000
+X & Y limites:  30 ,  30
+Distance required for Contamination: 1.5
+-------------------------------
+Day: 0
+- - - - - - - - - - - - - - - - 
+Healthy         999
+Covid-19(+)       1
+Hospitalized      0
+Cured             0
+Dead              0
+Name: 0, dtype: object
+-------------------------------
+Day: 1
+- - - - - - - - - - - - - - - - 
+Healthy         994
+Covid-19(+)       6
+Hospitalized      0
+Cured             0
+Dead              0
+Name: 1, dtype: object
+-------------------------------
+Day: 2
+- - - - - - - - - - - - - - - - 
+Healthy         980
+Covid-19(+)      20
+Hospitalized      0
+Cured             0
+Dead              0
+Name: 2, dtype: object
+-------------------------------
+Day: 3
+- - - - - - - - - - - - - - - - 
+Healthy         962
+Covid-19(+)      38
+Hospitalized      0
+Cured             0
+Dead              0
+Name: 3, dtype: object
+-------------------------------
+Day: 4
+- - - - - - - - - - - - - - - - 
+Healthy         949
+Covid-19(+)      50
+Hospitalized      1
+Cured             0
+Dead              0
+Name: 4, dtype: object
+-------------------------------
+Day: 5
+- - - - - - - - - - - - - - - - 
+Healthy         938
+Covid-19(+)      60
+Hospitalized      2
+Cured             0
+Dead              0
+Name: 5, dtype: object
