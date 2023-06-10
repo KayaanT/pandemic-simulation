@@ -1,49 +1,73 @@
+// to do list
+// ray casting
+// stamina fix
+// reproduction
+
 // Constants
 const INITIAL_PREY_POPULATION = 100;
 const INITIAL_PREDATOR_POPULATION = 5;
-let PREY_GROWTH_RATE = 0.005;
-const PREDATOR_DEATH_RATE = 0.005;
-const PREDATOR_GROWTH_RATE = 0.000001;
+
+// Variables
+let preyPopulation = [];
+let predatorPopulation = [];
+let isPaused = false;
 
 // Prey class
 class Prey {
-  constructor(x, y) {
-    this.position = createVector(x, y);
-    this.velocity = createVector(random(-1, 1), random(-1, 1));
-    this.radius = 5;
+  constructor(x, y, vel, dir, stamina, size) {
+    this.x = x;
+    this.y = y;
+    this.vel = vel;
+    this.dir = dir;
+    this.stamina = stamina;
+    this.size = size;
   }
 
   update() {
-    this.position.add(this.velocity);
+    this.x += cos(this.dir) * this.vel;
+    this.y += sin(this.dir) * this.vel;
     this.wrapAround();
   }
 
   display() {
     fill(0, 255, 0); // Green for prey
-    ellipse(this.position.x, this.position.y, this.radius * 2, this.radius * 2);
+    circle(this.x, this.y, this.size);
   }
 
   wrapAround() {
-    if (this.position.x < 0) {
-      this.position.x = width;
-    } else if (this.position.x > width) {
-      this.position.x = 0;
+    if (this.x < 0) {
+      this.x = width;
+    } else if (this.x > width) {
+      this.x = 0;
     }
 
-    if (this.position.y < 0) {
-      this.position.y = height;
-    } else if (this.position.y > height) {
-      this.position.y = 0;
+    if (this.y < 0) {
+      this.y = height;
+    } else if (this.y > height) {
+      this.y = 0;
     }
   }
+  castRay(dir) {
+    let collided = false;
+    for (let theta = dir - 30; theta < dir + 30; theta += 5) {
+      let rayx = this.x;
+      let rayy = this.y;
+
+    }
+  }
+  
 }
 
 // Predator class
 class Predator {
-  constructor(x, y) {
-    this.position = createVector(x, y);
-    this.velocity = createVector(random(-1, 1), random(-1, 1)); // Fix: Initialize random velocity
-    this.radius = 10;
+  constructor(x, y, vel, dir, stamina, size) {
+    this.x = x;
+    this.y = y;
+    this.vel = vel;
+    this.dir = dir;
+    this.stamina = stamina;
+    
+    this.size = size;
     this.isEating = false;
     this.eatTimer = 0;
   }
@@ -55,37 +79,42 @@ class Predator {
         this.isEating = false;
         this.eatTimer = 0;
       }
-    } else {
-      this.position.add(this.velocity);
+    } 
+    else {
+      this.x += cos(this.dir) * this.vel;
+      this.y += sin(this.dir) * this.vel;
       this.wrapAround();
     }
+
+    this.x += cos(this.dir) * this.vel;
+    this.y += sin(this.dir) * this.vel;
     
     this.eatPrey(preyPopulation);
   }
 
   display() {
     fill(255, 0, 0); // Red for predators
-    ellipse(this.position.x, this.position.y, this.radius * 2, this.radius * 2);
+    circle(this.x, this.y, this.size);
   }
 
   wrapAround() {
-    if (this.position.x < 0) {
-      this.position.x = width;
-    } else if (this.position.x > width) {
-      this.position.x = 0;
+    if (this.x < 0) {
+      this.x = width;
+    } else if (this.x > width) {
+      this.x = 0;
     }
 
-    if (this.position.y < 0) {
-      this.position.y = height;
-    } else if (this.position.y > height) {
-      this.position.y = 0;
+    if (this.y < 0) {
+      this.y = height;
+    } else if (this.y > height) {
+      this.y = 0;
     }
   }
   
-  eatPrey(preyPopulation) {
+  eatPrey() {
     for (let i = preyPopulation.length - 1; i >= 0; i--) {
       const prey = preyPopulation[i];
-      const distance = dist(this.position.x, this.position.y, prey.position.x, prey.position.y);
+      const distance = dist(this.x, this.y, prey.x, prey.y);
       if (distance < this.radius + prey.radius) {
         preyPopulation.splice(i, 1);
         this.isEating = true;
@@ -96,63 +125,67 @@ class Predator {
 }
 
 
-// Variables
-let preyPopulation;
-let predatorPopulation;
-let isPaused = false;
+
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  
-  preyPopulation = [];
+  angleMode(DEGREES);
   for (let i = 0; i < INITIAL_PREY_POPULATION; i++) {
-    preyPopulation.push(new Prey(random(width), random(height)));
+    pushPrey()
   }
 
-  predatorPopulation = [];
   for (let i = 0; i < INITIAL_PREDATOR_POPULATION; i++) {
-    predatorPopulation.push(new Predator(random(width), random(height)));
+    pushPredator();
   }
 }
 
 function draw() {
   background(220);
-  
-  if (!isPaused) {
-    // Update and display prey population
-    for (let prey of preyPopulation) {
-      prey.update();
-      prey.display();
-    }
-
-    // Update and display predator population
-    for (let predator of predatorPopulation) {
-      predator.update(preyPopulation);
-      predator.display();
-    }
-
-    // Prey growth
-    const preyGrowth = preyPopulation.length * PREY_GROWTH_RATE;
-    for (let i = 0; i < preyGrowth; i++) {
-      preyPopulation.push(new Prey(random(width), random(height)));
-    }
-
-    // Predator death
-    const predatorDeath = predatorPopulation.length * PREDATOR_DEATH_RATE;
-    predatorPopulation.splice(0, predatorDeath);
-
-    // Predator growth based on prey availability
-    const maxPredatorGrowth = preyPopulation.length * PREDATOR_GROWTH_RATE;
-    const predatorGrowth = min(maxPredatorGrowth, preyPopulation.length);
-    for (let i = 0; i < predatorGrowth; i++) {
-      predatorPopulation.push(new Predator(random(width), random(height)));
-    }
+  // Update and display prey population
+  if (!isPaused) {  
+    updatePreys();
+    updatePredators();
   }
+  
+  if (frameCount % 2 === 0) {
+    pushPrey();
+  } 
+  if (frameCount % 4 === 0) {
+    pushPredator();
+  }
+  
+  displayStats()
+}
 
-  // Display population numbers
+function displayStats() {
   fill(0);
   text("Prey Population: " + preyPopulation.length, 20, 20);
   text("Predator Population: " + predatorPopulation.length, 20, 40);
+}
+
+function pushPrey(x, y, dir, vel, stamina, size) {
+  preyPopulation.push(new Prey(random(width), random(height), random(1, 3), random(360), 100, 5));
+}
+
+function pushPredator() {
+  predatorPopulation.push(new Predator(random(width), random(height), random(1,3), random(0, 360), 0, 10));
+}
+
+function updatePreys() {
+  for (let prey of preyPopulation) {
+    prey.update();
+    prey.display();
+  }
+}
+
+
+function updatePredators() {
+  if (!isPaused) {
+    for (let predator of predatorPopulation) {
+        predator.update();
+        predator.display();
+    }
+  }
 }
 
 function keyPressed() {
