@@ -1,29 +1,22 @@
-// TODO LIST
-// Add raycasting to prey
-// add raycasting to predators
-// add reproduction system for both organisms
-// add threat detection for prey - might be working already
-// add movement smoothing
-// add stamina regeneration for preadtor?
-// improve predator eating prey
-
 // Constants
+// const INITIAL_PREY_POPULATION = prompt("How many prey would you like to start with?", 250);
+// const INITIAL_PREDATOR_POPULATION = prompt("How many predators would you like to start with?", 50);
 const INITIAL_PREY_POPULATION = 300;
-const INITIAL_PREDATOR_POPULATION = 30;
-
-
+const INITIAL_PREDATOR_POPULATION = 50;
 
 // Variables
 let preyPopulation = [];
 let predatorPopulation = [];
+let newPreyAdd = [];
 let isPaused = false; 
-let debugMode = true;
+let debugMode = false;
 let gridSizeChanged = false;
+let simuationSpeed = 4;
 
 let collided, rayX, rayY, rayDir;
 
 let grid = [];
-let gridBoxSize = 30;
+let gridBoxSize = 19;
 let xGrids, yGrids;
 
 
@@ -33,18 +26,21 @@ class Prey {
     this.startTime = null;
     this.x = x;
     this.y = y;
+    this.gridX = floor(this.x / gridBoxSize) + 0;
+    this.gridY = floor(this.y / gridBoxSize) + 0;    
     this.vel = vel;
     this.dir = dir;
-    this.stamina = stamina;
+    this.wantsSeggs = false;
+    this.seggsTimer = random(30);
+    this.staminaUse = 1;    
+    this.alive = true;
+    this.size = 6;
+
+    this.maxSpeed = maxSpeed;
+    this.hearing = hearing;
+    this.stamina = random(stamina);
     this.staminaCapacity = stamina;
     this.staminaRechargeTime = staminaRechargeTime; 
-    this.size = 6;
-    this.staminaUse = 1;
-    this.gridX = floor(this.x / gridBoxSize) + 1;
-    this.gridY = floor(this.y / gridBoxSize) + 1;
-    this.alive = true;
-    this.hearing = hearing;
-    this.maxSpeed = maxSpeed;
   }
 
   resetStamina() {
@@ -82,6 +78,9 @@ class Prey {
         console.log(grid[this.gridY][this.gridX], this.gridX, this.gridY);
       }
     }
+
+    this.searchForMate();
+
   }
 
   display() {
@@ -92,11 +91,52 @@ class Prey {
     circle(this.x, this.y, this.size);
   }
 
+  searchForMate() {
+    if (this.wantsSeggs) {
+      for (let otherPreyIndex of getCollidable(this.x, this.y, preyPopulation)) {
+        let otherPrey = preyPopulation[otherPreyIndex];
+        if (otherPrey !== this && otherPrey.wantsSeggs) {
+          if (dist(this.x, this.y, otherPrey.x, otherPrey.y) < 150) {
+            this.dir = Math.atan2(otherPrey.y - this.y, otherPrey.x - this.x) * (180/Math.PI);
+            if (dist(this.x, this.y, otherPrey.x, otherPrey.y) < (this.size + otherPrey.size)/2) {
+              this.wantsSeggs = false;
+              otherPrey.wantsSeggs = false;
+              //random(30, width-30), random(30, height - 30), 1, random(360), 1, 30, random(300,500), random(1000, 1200);
+              gridSizeChanged = true;
+              // x, y, vel, dir, maxSpeed, hearing, stamina, staminaRechargeTime
+              newPreyAdd.push(new Prey(
+                (this.x + otherPrey.x)/2,
+                (this.y + otherPrey.y)/2,
+                1,
+                random(0,360),
+                (this.maxSpeed + otherPrey.maxSpeed)/2 + random(-150,151)/1000,
+                round((this.hearing + otherPrey.hearing)/2) + random(-100,101)/50,
+                round((this.staminaCapacity + otherPrey.staminaCapacity)/2) + random(-20,21),
+                round((this.staminaRechargeTime + otherPrey.staminaRechargeTime)/2) + random(-80,81),
+               ));
+              
+            }
+          }
+        }
+      }
+    }
+    else {
+      this.seggsTimer += 1
+      if (this.seggsTimer >= 360) {
+        this.seggsTimer = random(30);
+        this.wantsSeggs = true;
+      }
+    }
+  }
+
   distanceCheck() {
     for (let predator of predatorPopulation) {
       if (dist(this.x, this.y, predator.x, predator.y) < this.hearing) {
         this.dir = (Math.atan2(predator.y - this.y, predator.x - this.x) * 180/Math.PI) + 180;
         this.vel = 1;
+      }
+      else {
+        this.vel = 0.5;
       }
     }
   }
@@ -118,24 +158,37 @@ class Predator {
     this.y = y;
     this.vel = vel;
     this.dir = dir;
-    this.stamina = stamina;
-    this.staminaCapacity = stamina;
-    this.size = 10;
     this.isEating = false;
     this.eatTimer = 0;
+    this.wantsSeggs = false;
+    this.seggsCounter = 0; // will mr sandor notice this
     this.staminaUse = 1;
     this.alive = true;
+    this.size = 8;
+    
     this.maxSpeed = maxSpeed;
+    this.rayStepCount = sight;
+
+    while (sight / this.rayStepCount <= 6) {
+      this.rayStepCount--;
+    }
+    this.rayStepCount++;
+
+    this.rayStepSize = sight/this.rayStepCount;
+    this.rayStepCount
     this.sight = sight;
     this.fov = fov;
+    this.stamina = stamina;
+    this.staminaCapacity = stamina;
 
-  }
+
+    }
 
   update() {
     if (this.stamina > 0) {    
       if (this.isEating) {
         this.eatTimer++;
-        if (this.eatTimer > 60) { // Eating duration
+        if (this.eatTimer > 30) { // Eating duration
           this.isEating = false;
           this.eatTimer = 0;
         }
@@ -153,17 +206,19 @@ class Predator {
       }
     }
 
-    // good
+
+    
+
     collided = false;
     for (let i = 0; i <= this.fov; i++) {
       let tempDir = this.dir + i * 5;
-      if (this.castRay(tempDir, this.sight)) {
+      if (this.castRay(tempDir)) {
         this.dir = tempDir;
         collided = true;
         break;
       }
       tempDir = this.dir - i * 5;
-      if (this.castRay(tempDir, this.sight)) {
+      if (this.castRay(tempDir)) {
         this.dir = tempDir;
         collided = true;
         break;
@@ -176,8 +231,10 @@ class Predator {
       this.vel = 0;
     }
     this.eatPrey(preyPopulation);
-
     wrapAround(this);
+
+    this.searchForMate();
+
 
   }
 
@@ -197,6 +254,7 @@ class Predator {
       if (distance < this.size/2 + prey.size/2) {
         preyPopulation[i].alive = false;
         this.isEating = true;
+        this.seggsCounter++;
         this.stamina = this.staminaCapacity;
         break;
       }
@@ -207,14 +265,57 @@ class Predator {
     return (this.stamina <= 0)
   }
 
+  searchForMate() {
+    if (this.wantsSeggs) {
+      for (let otherPredator of predatorPopulation) {
+        if (otherPredator !== this && otherPredator.wantsSeggs) {
+          if (dist(this.x, this.y, otherPredator.x, otherPredator.y) < 200) {
+            this.dir = Math.atan2(otherPredator.y - this.y, otherPredator.x - this.x) * (180/Math.PI);
+            if (dist(this.x, this.y, otherPredator.x, otherPredator.y) < (this.size + otherPredator.size)/2) {
+              this.wantsSeggs = false;
+              otherPredator.wantsSeggs = false;
+              //random(30, width- 30), random(30, height - 30), 0, random(0, 360), 1.5, 15, 3, random(500,700);
+
+              // x, y, vel, dir, maxSpeed, sight,  fov, stamina
+              gridSizeChanged = true;
+              predatorPopulation.push(new Predator(
+                (this.x + otherPredator.x)/2,
+                (this.y + otherPredator.y)/2,
+                0,
+                random(0,360),
+                (this.maxSpeed + otherPredator.maxSpeed)/2 + random(-100,101)/500,
+                round((this.sight + otherPredator.sight)/2) + random(-100,101)/50,
+                round((this.fov + otherPredator.fov)/2),
+                round((this.staminaCapacity + otherPredator.staminaCapacity)/2) + random(-50,51),
+               ));
+              
+            }
+          }
+        }
+      }
+      this.vel = this.maxSpeed;
+    }
+    else {
+      if (this.seggsCounter >= 3) {
+        this.seggsCounter = 0;
+        this.wantsSeggs = true;
+      }
+     
+    }
+  }
+
   castRay(dir, range) {
     collided = false;
     rayX = this.x;
     rayY = this.y;
     rayDir = dir;
+
+    if (debugMode) {
+      line(rayX, rayY, rayX + cos(dir) * this.rayStepSize * this.rayStepCount, rayY + sin(dir) * this.rayStepSize * this.rayStepCount);
+    }
     
 
-    for (let i = 0; i < range; i++) {
+    for (let i = 0; i < this.rayStepCount; i++) {
       rayX = wrapAround({x:rayX, y:rayY}).x;
       rayY = wrapAround({x:rayX, y:rayY}).y;
       for (let i of getCollidable(rayX, rayY, preyPopulation)) {
@@ -232,11 +333,9 @@ class Predator {
         }
 
       }
-      if (debugMode) {
-        line(rayX, rayY, rayX + cos(dir) * 5, rayY + sin(dir) * 5);
-      }
-      rayX += cos(dir) * 6;
-      rayY += sin(dir) * 6;
+
+      rayX += cos(dir) * this.rayStepSize;
+      rayY += sin(dir) * this.rayStepSize;
     }
     return (false);
   }
@@ -291,8 +390,18 @@ function draw() {
   }
   
   if (!isPaused) {
-    updatePrey();
-    updatePredators();
+
+    for (let i = 0; i < simuationSpeed; i++) {
+      updatePrey();
+      updatePredators();      
+    }
+
+    for (let i = predatorPopulation.length - 1; i >= 0; i--) {
+      predatorPopulation[i].display();
+    }
+    for (let i = 0; i < preyPopulation.length; i++) {
+      preyPopulation[i].display();
+    }
 
   }
 
@@ -318,23 +427,24 @@ function getCollidable(x, y, group) {
 }
 
 function displayStats() {
-  fill(0);
-  text("Prey Population: " + preyPopulation.length, 20, 20);
-  text("Predator Population: " + predatorPopulation.length, 20, 40);
+  fill('blue');
+  textSize(18)
+  text("Prey Population: " + preyPopulation.length, 20, 30);
+  text("Predator Population: " + predatorPopulation.length, 20, 50);
 }
 
 function pushPrey() {
 
   // x, y, vel, dir, maxSpeed, hearing, stamina, staminaRechargeTime
 
-  preyPopulation.push(new Prey(random(30, width-30), random(30, height - 30), 0, random(360), 1, 30, random(300,500), random(1000, 1200)));
+  preyPopulation.push(new Prey(random(30, width-30), random(30, height - 30), 1, random(360), 1, 12, random(600,800), random(800, 1000)));
   
 }
 
 function pushPredator() {
 
-  // x, y, vel, dir, maxSpeed, sight, fov, stamina
-  predatorPopulation.push(new Predator(random(30, width- 30), random(30, height - 30), 0, random(0, 360), 1.5, 15, 3, random(500,700)));
+  //                                          x,                      y,              vel,      dir, maxSpeed, sight, fov, stamina
+  predatorPopulation.push(new Predator(random(30, width- 30), random(30, height - 30), 0, random(0, 360), 2, 32, 4, random(400,600)));
 }
 
 function updatePrey() {
@@ -352,15 +462,22 @@ function updatePrey() {
     }
   }
 
+  for (let newPrey of newPreyAdd) {
+    preyPopulation.push(newPrey);
+  }
+
+  newPreyAdd = [];
+
   if (gridSizeChanged) {
     resetGrid();
   }
 
   for (let i = 0; i < preyPopulation.length; i++) {
     preyPopulation[i].update(i);
-    preyPopulation[i].display();
+
     // wrapAround(preyPopulation[i]);  
   }
+
 
 
 
@@ -384,18 +501,27 @@ function keyPressed() {
   if (key === " ") {
     isPaused = !isPaused;
   }
+  if (key === "d") { // ty <3
+    debugMode = !debugMode
+  }
+  if (keyCode === UP_ARROW) {
+    simuationSpeed++;
+  }
+  else if (keyCode === DOWN_ARROW) {
+    simuationSpeed--;
+  }
 }
 
 function wrapAround(thing) {
   if (thing.x < 0) {
-    thing.x = width;
-  } else if (thing.x > width) {
+    thing.x = width - 0;
+  } else if (thing.x > width - 0) {
     thing.x = 0;
   }
 
   if (thing.y < 0) {
-    thing.y = height;
-  } else if (thing.y > height) {
+    thing.y = height - 0;
+  } else if (thing.y > height - 0) {
     thing.y = 0;
   }
   return thing;
