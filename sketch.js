@@ -1,8 +1,11 @@
 // Constants
-// const INITIAL_PREY_POPULATION = prompt("How many prey would you like to start with?", 250);
-// const INITIAL_PREDATOR_POPULATION = prompt("How many predators would you like to start with?", 50);
-const INITIAL_PREY_POPULATION = 300;
-const INITIAL_PREDATOR_POPULATION = 50;
+const INITIAL_PREY_POPULATION = prompt("How many prey would you like to start with?", 200);
+const INITIAL_PREDATOR_POPULATION = prompt("How many predators would you like to start with?", 50);
+// const INITIAL_PREY_POPULATION = 400;
+// const INITIAL_PREDATOR_POPULATION = 100;
+
+const PREY_POPULATION_CAP = 1500;
+const PREDATOR_POPULATION_CAP = 1500;
 
 // Variables
 let preyPopulation = [];
@@ -88,7 +91,9 @@ class Prey {
     // circle(this.x, this.y, this.size);
     const shade = map(this.stamina, 0, this.staminaCapacity, 0, 225);
     fill(75, 255, shade); 
-    circle(this.x, this.y, this.size);
+
+    rect(this.x, this.y, this.size,this.size);
+    square
   }
 
   searchForMate() {
@@ -102,18 +107,23 @@ class Prey {
               this.wantsSeggs = false;
               otherPrey.wantsSeggs = false;
               //random(30, width-30), random(30, height - 30), 1, random(360), 1, 30, random(300,500), random(1000, 1200);
-              gridSizeChanged = true;
-              // x, y, vel, dir, maxSpeed, hearing, stamina, staminaRechargeTime
-              newPreyAdd.push(new Prey(
-                (this.x + otherPrey.x)/2,
-                (this.y + otherPrey.y)/2,
-                1,
-                random(0,360),
-                (this.maxSpeed + otherPrey.maxSpeed)/2 + random(-150,151)/1000,
-                round((this.hearing + otherPrey.hearing)/2) + random(-100,101)/50,
-                round((this.staminaCapacity + otherPrey.staminaCapacity)/2) + random(-20,21),
-                round((this.staminaRechargeTime + otherPrey.staminaRechargeTime)/2) + random(-80,81),
-               ));
+
+              if (preyPopulation.length < PREY_POPULATION_CAP) {
+                gridSizeChanged = true;
+                // x, y, vel, dir, maxSpeed, hearing, stamina, staminaRechargeTime
+                newPreyAdd.push(new Prey(
+                  (this.x + otherPrey.x)/2,
+                  (this.y + otherPrey.y)/2,
+                  1,
+                  random(0,360),
+                  (this.maxSpeed + otherPrey.maxSpeed)/2 + random(-150,151)/1000,
+                  round((this.hearing + otherPrey.hearing)/2) + random(-100,101)/50,
+                  round((this.staminaCapacity + otherPrey.staminaCapacity)/2) + random(-20,21),
+                  round((this.staminaRechargeTime + otherPrey.staminaRechargeTime)/2) + random(-80,81),
+                ));
+              }
+
+
               
             }
           }
@@ -122,7 +132,7 @@ class Prey {
     }
     else {
       this.seggsTimer += 1
-      if (this.seggsTimer >= 360) {
+      if (this.seggsTimer >= 330) {
         this.seggsTimer = random(30);
         this.wantsSeggs = true;
       }
@@ -188,7 +198,7 @@ class Predator {
     if (this.stamina > 0) {    
       if (this.isEating) {
         this.eatTimer++;
-        if (this.eatTimer > 30) { // Eating duration
+        if (this.eatTimer > 50) { // Eating duration
           this.isEating = false;
           this.eatTimer = 0;
         }
@@ -211,13 +221,13 @@ class Predator {
 
     collided = false;
     for (let i = 0; i <= this.fov; i++) {
-      let tempDir = this.dir + i * 5;
+      let tempDir = this.dir + i * 8;
       if (this.castRay(tempDir)) {
         this.dir = tempDir;
         collided = true;
         break;
       }
-      tempDir = this.dir - i * 5;
+      tempDir = this.dir - i * 8;
       if (this.castRay(tempDir)) {
         this.dir = tempDir;
         collided = true;
@@ -242,7 +252,8 @@ class Predator {
 
     const shade = map(this.stamina, 0, this.staminaCapacity, 0, 205);
     fill(0, 255, shade); 
-    circle(this.x, this.y, this.size);
+
+    rect(this.x, this.y, this.size, this.size);
   }
 
   eatPrey() {
@@ -277,17 +288,22 @@ class Predator {
               //random(30, width- 30), random(30, height - 30), 0, random(0, 360), 1.5, 15, 3, random(500,700);
 
               // x, y, vel, dir, maxSpeed, sight,  fov, stamina
-              gridSizeChanged = true;
-              predatorPopulation.push(new Predator(
-                (this.x + otherPredator.x)/2,
-                (this.y + otherPredator.y)/2,
-                0,
-                random(0,360),
-                (this.maxSpeed + otherPredator.maxSpeed)/2 + random(-100,101)/500,
-                round((this.sight + otherPredator.sight)/2) + random(-100,101)/50,
-                round((this.fov + otherPredator.fov)/2),
-                round((this.staminaCapacity + otherPredator.staminaCapacity)/2) + random(-50,51),
-               ));
+              if (predatorPopulation.length < PREDATOR_POPULATION_CAP) {
+                gridSizeChanged = true;
+                
+                predatorPopulation.push(new Predator(
+                  (this.x + otherPredator.x)/2,
+                  (this.y + otherPredator.y)/2,
+                  0,
+                  random(0,360),
+                  (this.maxSpeed + otherPredator.maxSpeed)/2 + random(-100,101)/500,
+                  round((this.sight + otherPredator.sight)/2) + random(-100,101)/50,
+                  round((this.fov + otherPredator.fov)/2),
+                  round((this.staminaCapacity + otherPredator.staminaCapacity)/2) + random(-50,51),
+                ));                
+              }
+
+
               
             }
           }
@@ -296,7 +312,7 @@ class Predator {
       this.vel = this.maxSpeed;
     }
     else {
-      if (this.seggsCounter >= 3) {
+      if (this.seggsCounter >= 2) {
         this.seggsCounter = 0;
         this.wantsSeggs = true;
       }
@@ -346,6 +362,7 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   angleMode(DEGREES);
   colorMode(HSB, 255);
+  rectMode(CENTER);
 
   for (let i = 0; i < INITIAL_PREY_POPULATION; i++) {
     pushPrey();
@@ -437,14 +454,14 @@ function pushPrey() {
 
   // x, y, vel, dir, maxSpeed, hearing, stamina, staminaRechargeTime
 
-  preyPopulation.push(new Prey(random(30, width-30), random(30, height - 30), 1, random(360), 1, 12, random(600,800), random(800, 1000)));
+  preyPopulation.push(new Prey(random(30, width-30), random(30, height - 30), 1, random(360), 1, 14, random(650,750), random(900, 1000)));
   
 }
 
 function pushPredator() {
 
   //                                          x,                      y,              vel,      dir, maxSpeed, sight, fov, stamina
-  predatorPopulation.push(new Predator(random(30, width- 30), random(30, height - 30), 0, random(0, 360), 2, 32, 4, random(400,600)));
+  predatorPopulation.push(new Predator(random(30, width- 30), random(30, height - 30), 0, random(0, 360), 1.7, 50, 5, random(400,450)));
 }
 
 function updatePrey() {
@@ -490,7 +507,6 @@ function updatePredators() {
   // }
   for (let i = predatorPopulation.length - 1; i >= 0; i--) {
     predatorPopulation[i].update(preyPopulation);
-    predatorPopulation[i].display();
     if (predatorPopulation[i].isDead()) {
       predatorPopulation.splice(i, 1);
     }
